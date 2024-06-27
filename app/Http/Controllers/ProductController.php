@@ -14,11 +14,29 @@ class ProductController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::all();
 
-        return view('products.index',compact('products'));
+        $keyword = $request->keyword;
+
+        if ($request->category !== null) {
+            $products = Product::where('category_id', $request->category)->sortable()->paginate(15);
+            $total_count = Product::where('category_id', $request->category)->count();
+            $category = Category::find($request->category);
+        } elseif ($keyword !== null) {
+            $products = Product::where('name', 'like', "%{$keyword}%")->sortable()->paginate(15);
+            $total_count = $products->total();
+            $category = null;
+        } else {
+            $products = Product::sortable()->paginate(15);
+            $total_count = "";
+            $category = null;
+        }
+
+        $categories = Category::all();
+        $major_category_names = Category::pluck('major_category_name')->unique();
+
+        return view('products.index', compact('products', 'category', 'categories', 'major_category_names', 'total_count', 'keyword'));
     }
 
     /**
@@ -59,7 +77,9 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        return view('products,show',compact('product'));
+        $reviews = $product->reviews()->get();
+  
+        return view('products.show', compact('product', 'reviews'));
     }
 
     /**
